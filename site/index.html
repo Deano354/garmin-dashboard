@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Garmin Dashboard</title>
+<meta name="theme-color" content="#0b7a75">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Garmin">
+<meta name="robots" content="noindex">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#14181f;--mut:#667085;--line:#e4e7ec;--acc:#0b7a75;--acc2:#e0f2f1;--warn:#b54708}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1216;--card:#171b21;--ink:#e8eaed;--mut:#98a2b3;--line:#2a3039;--acc:#3cc4bd;--acc2:#12332f}}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+header{padding:20px 24px 8px;display:flex;flex-wrap:wrap;gap:12px;align-items:baseline;justify-content:space-between}
+h1{font-size:22px;margin:0}h2{font-size:15px;margin:0 0 12px}.mut{color:var(--mut)}
+nav{display:flex;gap:4px;padding:0 24px;border-bottom:1px solid var(--line);overflow-x:auto}
+nav button{border:0;background:none;color:var(--mut);padding:10px 14px;font:inherit;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+nav button.on{color:var(--ink);border-color:var(--acc);font-weight:600}
+main{padding:20px 24px;max-width:1300px;margin:auto}section{display:none}section.on{display:block}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;margin-bottom:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:16px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.tile b{display:block;font-size:22px;font-variant-numeric:tabular-nums}.tile span{color:var(--mut);font-size:12px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+select,input{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink)}
+.seg button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--mut);padding:5px 10px;cursor:pointer}
+.seg button:first-child{border-radius:6px 0 0 6px}.seg button:last-child{border-radius:0 6px 6px 0}.seg button+button{border-left:0}
+.seg button.on{background:var(--acc2);color:var(--ink)}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{color:var(--mut);font-weight:500;cursor:pointer;user-select:none;position:sticky;top:0;background:var(--card)}
+td.n,th.n{text-align:right}tbody tr{cursor:pointer}tbody tr:hover{background:var(--acc2)}
+.tw{max-height:70vh;overflow:auto}
+svg{display:block;width:100%;overflow:visible}svg text{fill:var(--mut);font-size:11px}
+.tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--bg);padding:6px 8px;border-radius:6px;font-size:12px;display:none;z-index:9}
+.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:16px}
+.charts .card{margin:0}dialog{border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);max-width:640px;width:92vw}
+dialog::backdrop{background:#0006}dl{display:grid;grid-template-columns:max-content 1fr;gap:4px 16px;margin:0}dt{color:var(--mut)}dd{margin:0}
+a{color:var(--acc)}.pill{display:inline-block;padding:1px 8px;border-radius:99px;background:var(--acc2);font-size:12px}
+.empty{padding:40px;text-align:center;color:var(--mut)}
+@media (max-width:600px){.charts{grid-template-columns:1fr}main,header{padding-left:12px;padding-right:12px}nav{padding:0 4px}h1{font-size:19px}.grid{grid-template-columns:repeat(2,1fr)}.tile b{font-size:19px}}
+svg{touch-action:pan-y}
+#lock{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;z-index:20}
+#lock form{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px;width:100%;max-width:380px}
+#lock h1{margin-bottom:6px}#lock input[type=password]{width:100%;padding:12px;font-size:16px;margin:14px 0 10px}
+#lock button,.btn{width:100%;padding:12px;font:inherit;font-weight:600;border:0;border-radius:8px;background:var(--acc);color:#fff;cursor:pointer}
+#lock label{display:flex;gap:8px;align-items:center;color:var(--mut);margin-bottom:14px}#lockErr{color:var(--warn);min-height:20px;margin:8px 0 0}
+.links a{display:inline-block;margin:0 14px 8px 0}
+#zoneBody table{font-size:13px}#zoneBody td,#zoneBody th{padding:6px 4px}#zoneBody td:first-child{white-space:normal}
+#dlg{padding:16px}#dlg table{font-size:13px}#dlg td,#dlg th{padding:6px 4px}#dlg td:first-child{white-space:normal}#dlg .chip{font-size:11px;padding:1px 7px}
+@media (max-width:600px){#dlg{width:96vw;max-width:96vw;padding:14px}}
+.prgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:16px}
+@media (max-width:600px){.pr{padding:10px 12px}.pr b{font-size:21px}}
+.pr{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer}.pr:hover{border-color:var(--acc)}
+.pr .t{font-size:12px;color:var(--mut);font-weight:600;text-transform:uppercase;letter-spacing:.03em}.pr b{display:block;font-size:24px;margin:2px 0;font-variant-numeric:tabular-nums}
+.pr .s{font-size:12px;color:var(--mut);line-height:1.4}.pr .miss{display:block;margin-top:4px;font-size:11px;color:var(--warn)}.pr .new{display:inline-block;font-size:11px;font-weight:600;color:#067647;background:#dcfae6;border-radius:99px;padding:0 7px;margin-left:4px}
+@media (prefers-color-scheme:dark){.pr .new{background:#053321;color:#75e0a7}}
+.rk{display:inline-flex;width:22px;height:22px;border-radius:50%;align-items:center;justify-content:center;font-size:12px;font-weight:700;background:var(--acc2)}.rk.g{background:#fdb022;color:#3d2600}
+.tcard{cursor:pointer;transition:border-color .15s}.tcard:hover{border-color:var(--acc)}
+.tcard h2{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin-bottom:4px}.tcard .more{margin-left:auto;color:var(--acc);font-size:13px;font-weight:500}
+.tline{font-size:13px;color:var(--mut);margin:0 0 10px}
+.chip{display:inline-block;font-size:12px;font-weight:600;padding:2px 9px;border-radius:99px;white-space:nowrap}
+.chip.good{background:#dcfae6;color:#067647}.chip.bad{background:#fef0c7;color:#b54708}.chip.neu{background:var(--acc2);color:var(--mut)}
+@media (prefers-color-scheme:dark){.chip.good{background:#053321;color:#75e0a7}.chip.bad{background:#4e1d09;color:#fec84b}}
+#trend{padding:0;max-width:760px;width:100%;border:0}
+#trend .th{position:sticky;top:0;z-index:2;background:var(--card);display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line)}
+#trend .th h2{margin:0;font-size:17px;flex:1}#trend .x{font:inherit;font-size:20px;border:0;background:none;color:var(--ink);cursor:pointer;padding:4px 8px}
+#trend .tb{padding:16px}#trend .sum p{margin:0 0 10px;line-height:1.5}#trend .sum .about{color:var(--mut);font-size:13px;border-top:1px solid var(--line);padding-top:10px;margin-top:4px}
+#trend .grid{grid-template-columns:repeat(4,1fr);margin:14px 0}
+@media (max-width:600px){#trend{max-width:100vw;max-height:100dvh;height:100dvh;margin:0;border-radius:0}#trend .grid{grid-template-columns:repeat(2,1fr)}}
+.exp{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;align-items:center}
+.dl{font:inherit;font-size:13px;padding:7px 12px;border:1px solid var(--line);border-radius:99px;background:var(--card);color:var(--ink);cursor:pointer}
+.dl::before{content:'⬇ ';color:var(--acc)}.dl:active{background:var(--acc2)}
+</style>
+</head>
+<body>
+<div id="lock"><form id="lockForm"><h1>Garmin Dashboard</h1><div class="mut">Enter your data passphrase to open your data. It is decrypted on this device only.</div>
+<input type="password" id="pass" autocomplete="current-password" placeholder="Passphrase" required>
+<label><input type="checkbox" id="remember"> Remember on this device</label>
+<button id="unlockBtn">Unlock</button><p id="lockErr"></p><p class="mut" style="font-size:13px;margin:4px 0 0">Not yours? <a href="setup.html">Set up your own Garmin Dashboard →</a></p></form></div>
+<header><div><h1 id="title">My Garmin Data</h1><div class="mut" id="sub"></div></div>
+<div class="seg" id="range"><button data-d="30">30d</button><button data-d="90">90d</button><button data-d="365" class="on">1y</button><button data-d="0">All</button></div></header>
+<nav id="tabs"><button data-t="overview" class="on">Overview</button><button data-t="health">Health trends</button><button data-t="sleep">Sleep</button><button data-t="activities">Activities</button><button data-t="more">More</button></nav>
+<main>
+<section id="overview" class="on"></section>
+<section id="health"></section>
+<section id="sleep"></section>
+<section id="activities"></section>
+<section id="more"></section>
+</main>
+<div class="tip" id="tip"></div>
+<dialog id="trend"><div class="th"><button class="x" onclick="closeTrend()" aria-label="Back">←</button><h2 id="trTitle"></h2><span id="trChip"></span></div><div class="tb" id="trBody"></div></dialog>
+<dialog id="dlg"><div id="dlgBody"></div><p style="text-align:right;margin:12px 0 0"><button onclick="dlg.close()">Close</button></p></dialog>
+<script>
+let G = null;
+const $ = s => document.querySelector(s);
+const tip = $('#tip');
+let RANGE = 365;
+const fmt = (v, d=0) => v==null||isNaN(v) ? '–' : Number(v).toLocaleString(undefined,{maximumFractionDigits:d,minimumFractionDigits:d});
+const hms = s => { if(!s) return '–'; s=Math.round(s); const h=Math.floor(s/3600), m=Math.floor(s%3600/60), x=s%60; return (h?h+':'+String(m).padStart(2,'0'):m)+':'+String(x).padStart(2,'0'); };
+const label = t => (t||'other').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+const esc = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const cutoff = () => { if(!RANGE) return '0000'; const d=new Date(); d.setDate(d.getDate()-RANGE); return d.toISOString().slice(0,10); };
+const inRange = arr => arr.filter(r => (r.d||r.start||'') >= cutoff());
+const avg = a => { a=a.filter(v=>v!=null); return a.length ? a.reduce((x,y)=>x+y,0)/a.length : null; };
+const sum = a => a.reduce((x,y)=>x+(y||0),0);
+function pace(a){ if(!a.speed||!a.km) return '–'; if(/swim/.test(a.type||'')){ const s=100/a.speed; return Math.floor(s/60)+':'+String(Math.round(s%60)).padStart(2,'0')+' /100m'; } if(/run|walk|hik/.test(a.type||'')){ const s=1000/a.speed; return Math.floor(s/60)+':'+String(Math.round(s%60)).padStart(2,'0')+' /km'; } return fmt(a.speed*3.6,1)+' km/h'; }
+
+// ---- simple SVG chart --------------------------------------------------
+function chart(el, rows, key, o={}) {
+  const pts = rows.filter(r => r[key]!=null).map(r => ({d:r.d, v:r[key]}));
+  if (!pts.length) { el.innerHTML = '<div class="empty">No data in this range</div>'; return; }
+  const W=Math.max(300, Math.min(700, el.clientWidth||600)), H=o.h||180, L=40, R=8, T=10, B=22;
+  const t0=+new Date(pts[0].d), t1=+new Date(pts[pts.length-1].d)||t0+1, span=Math.max(t1-t0, 864e5);
+  let lo=o.min??Math.min(...pts.map(p=>p.v)), hi=Math.max(...pts.map(p=>p.v), o.goal||-Infinity);
+  if (o.bar) lo=0; if (hi===lo){hi+=1;lo-=1;} const pad=(hi-lo)*.08; if(!o.bar&&o.min==null) lo-=pad; hi+=pad;
+  const x = d => L+(W-L-R)*((+new Date(d))-t0)/span, y = v => T+(H-T-B)*(1-(v-lo)/(hi-lo));
+  let s = `<svg viewBox="0 0 ${W} ${H}">`;
+  for (let i=0;i<=3;i++){ const v=lo+(hi-lo)*i/3, yy=y(v); s+=`<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="var(--line)"/><text x="${L-6}" y="${yy+4}" text-anchor="end">${o.fmtv?o.fmtv(v,true):fmt(v, Math.abs(hi-lo)<10?1:0)}</text>`; }
+  const ticks=5; for(let i=0;i<=ticks;i++){ const t=new Date(t0+span*i/ticks); s+=`<text x="${L+(W-L-R)*i/ticks}" y="${H-4}" text-anchor="middle">${t.toLocaleDateString(undefined,{month:'short',year:span>2e10?'2-digit':undefined,day:span>2e10?undefined:'numeric'})}</text>`; }
+  if (o.goal) s+=`<line x1="${L}" x2="${W-R}" y1="${y(o.goal)}" y2="${y(o.goal)}" stroke="var(--warn)" stroke-dasharray="4 4"/>`;
+  const col = o.color||'var(--acc)';
+  if (o.bar) { const bw=Math.max(1,(W-L-R)/(span/864e5)*.75); pts.forEach(p=>s+=`<rect x="${x(p.d)-bw/2}" y="${y(p.v)}" width="${bw}" height="${y(lo)-y(p.v)}" fill="${col}" opacity=".75"/>`); }
+  else {
+    s+=`<polyline fill="none" stroke="${col}" stroke-width="1.2" opacity="${pts.length>60?.35:1}" points="${pts.map(p=>x(p.d)+','+y(p.v)).join(' ')}"/>`;
+    if (pts.length>60) { const k=7, ma=pts.map((p,i)=>{const w=pts.slice(Math.max(0,i-k+1),i+1);return x(p.d)+','+y(avg(w.map(q=>q.v)));}); s+=`<polyline fill="none" stroke="${col}" stroke-width="2" points="${ma.join(' ')}"/>`; }
+  }
+  s+=`<line class="hx" y1="${T}" y2="${H-B}" stroke="var(--mut)" opacity="0"/><rect x="${L}" y="0" width="${W-L-R}" height="${H}" fill="transparent"/></svg>`;
+  el.innerHTML = s;
+  const svg=el.querySelector('svg'), hx=svg.querySelector('.hx');
+  svg.onpointermove = svg.onpointerdown = e => { const b=svg.getBoundingClientRect(), px=(e.clientX-b.left)/b.width*W, t=t0+(px-L)/(W-L-R)*span;
+    let best=pts[0]; for(const p of pts) if(Math.abs(+new Date(p.d)-t)<Math.abs(+new Date(best.d)-t)) best=p;
+    hx.setAttribute('x1',x(best.d)); hx.setAttribute('x2',x(best.d)); hx.setAttribute('opacity',.6);
+    tip.style.display='block'; tip.style.left=(e.clientX+12)+'px'; tip.style.top=(e.clientY-28)+'px';
+    tip.textContent=`${best.d}: ${o.fmtv?o.fmtv(best.v):fmt(best.v, o.dec??0)+(o.unit||'')}`; };
+  svg.onpointerleave = () => { tip.style.display='none'; hx.setAttribute('opacity',0); };
+}
+// ---- trend analysis ---------------------------------------------------------
+// better: 'up' = higher is better, 'down' = lower is better, 'neutral' = no judgement, [lo,hi] = target range
+const METRICS = {
+  rhr:{better:'down', about:'Resting heart rate. A lower resting heart rate usually reflects a fitter heart. A rise of 5+ bpm above your normal for several days is often linked to illness, poor sleep, stress, alcohol or overtraining.'},
+  hrv:{better:'up', about:'Overnight heart rate variability. Compare it with your own baseline, not other people’s. Higher than your normal usually means good recovery; a drop below it often follows hard training, stress, illness, alcohol or short sleep. It naturally declines slowly with age.'},
+  stress:{better:'down', about:'Garmin’s all-day stress score (0–100) is based on heart rate variability, so it rises with physical strain, illness and poor recovery as well as mental stress. Under 25 is rest; 26–50 is low.'},
+  bbHigh:{better:'up', about:'The highest Body Battery reached each day, usually after sleep. A higher peak means you are starting the day better recharged.'},
+  readiness:{better:'up', about:'Training readiness combines sleep, recovery time, HRV, acute training load and stress. Low readiness for a few days is normal after hard blocks; a long run of low scores suggests you need more recovery.'},
+  vo2:{better:'up', about:'VO₂ max is Garmin’s estimate of your aerobic fitness. It moves slowly: a change of 1–2 points over a few months is meaningful.'},
+  kg:{better:'neutral', about:'Body weight from your scale or manual entries. Whether up or down is “good” depends on your goals, so no judgement is made.'},
+  intensity:{better:'up', about:'Intensity minutes (vigorous minutes count double). Health guidelines suggest at least 150 a week, about 21 a day.'},
+  activeKcal:{better:'up', about:'Calories burned through activity on top of your resting metabolism.'},
+  floors:{better:'up', about:'Floors climbed, counted from your watch’s barometer.'},
+  spo2:{better:'neutral', about:'Average blood oxygen. Readings of about 95–100% are typical at sea level; wrist readings are noisy and drop at altitude.'},
+  resp:{better:'neutral', about:'Average breathing rate while awake. 12–20 breaths a minute is typical; a sustained change from your own normal can accompany illness.'},
+  steps:{better:'up', about:'Daily steps. Studies link more daily steps to lower health risk, with most of the benefit up to about 8,000–10,000 a day.'},
+  weeklyKm:{better:'up', about:'Total distance from all recorded activities each week (Monday start).'},
+  sleepH:{better:[7,9], about:'Total sleep time. Most adults need 7–9 hours a night.'},
+  sleepScore:{better:'up', about:'Garmin’s 0–100 sleep score: 90+ excellent, 80–89 good, 60–79 fair, under 60 poor.'},
+  deepH:{better:'up', about:'Deep sleep is the most physically restorative stage. It typically makes up about 13–23% of the night.'},
+  actKm:{better:'neutral', about:'Distance of each activity. Longer isn’t automatically better, so no judgement is made; see weekly distance for your overall volume.'},
+  actMin:{better:'neutral', about:'Duration of each activity.'},
+  wkKm:{better:'up', about:'Total distance for this activity type each week (Monday start). Steady increases of no more than about 10% a week are a common rule of thumb to limit injury risk.'},
+  wkH:{better:'up', about:'Total time spent on this activity type each week.'},
+  pace:{better:'down', about:'Average pace (minutes per km). Faster isn’t always the goal of every session — easy runs should feel easy — so read it alongside heart rate and efficiency.'},
+  pace100:{better:'down', about:'Average swim pace per 100 m.'},
+  kmh:{better:'up', about:'Average speed. Terrain, wind and the type of session have a big effect, so look at the long-term direction.'},
+  eff:{better:'up', about:'Efficiency: metres covered per heartbeat (speed ÷ heart rate). If it rises, you’re going further for the same heart rate — one of the clearest signs of improving aerobic fitness. Heat, hills and fatigue lower it.'},
+  avgHr:{better:'neutral', about:'Average heart rate during the activity. Whether higher or lower is good depends on the session — compare it with pace (see efficiency).'},
+  maxHr:{better:'neutral', about:'Highest heart rate reached during the activity.'},
+  te:{better:'neutral', about:'Aerobic training effect (0–5): how much the session improved your aerobic base. 2–2.9 maintains, 3–3.9 improves, 4–4.9 highly improves, 5 is overreaching. A mix of easy and harder sessions works best.'},
+  ate:{better:'neutral', about:'Anaerobic training effect (0–5): how much the session built speed and power through high-intensity efforts.'},
+  tl:{better:'neutral', about:'Training load: Garmin’s estimate of how hard the session was on your body (EPOC). Big jumps in weekly load raise injury and illness risk.'},
+  elev:{better:'neutral', about:'Total elevation gained during the activity.'},
+  cad:{better:'neutral', about:'Average cadence (steps or pedal strokes per minute). For running, slightly higher cadence often means a shorter, more efficient stride.'},
+  power:{better:'up', about:'Average power in watts.'},
+  kcal:{better:'neutral', about:'Calories burned during the activity.'},
+  stride:{better:'neutral', about:'Average stride length while running.'},
+  gct:{better:'down', about:'Ground contact time: how long each foot stays on the ground. Lower usually means a more efficient running stride.'},
+  remH:{better:'up', about:'REM sleep supports memory and mood. It typically makes up about 20–25% of the night.'},
+};
+const DAY = 864e5;
+function seriesOf(rows, key){ return rows.filter(r=>r[key]!=null&&r.d).map(r=>({t:+new Date(r.d), d:r.d, v:r[key]})).sort((a,b)=>a.t-b.t); }
+const mean = a => a.length ? a.reduce((x,y)=>x+y,0)/a.length : null;
+const sd = a => { const m=mean(a); return a.length>1 ? Math.sqrt(mean(a.map(x=>(x-m)**2))) : 0; };
+function windowAvg(pts, endT, days){ return mean(pts.filter(p=>p.t>endT-days*DAY && p.t<=endT).map(p=>p.v)); }
+function regress(pts){
+  if (pts.length < 6) return null;
+  const t0=pts[0].t, xs=pts.map(p=>(p.t-t0)/DAY), ys=pts.map(p=>p.v), mx=mean(xs), my=mean(ys);
+  let num=0, den=0; xs.forEach((x,i)=>{num+=(x-mx)*(ys[i]-my); den+=(x-mx)**2;});
+  const slope=den?num/den:0, span=xs[xs.length-1]; const start=my-slope*mx, end=start+slope*span;
+  return {start, end, change:end-start, rel:(end-start)/(sd(ys)||1), span};
+}
+function judge(key, pts){
+  const meta=METRICS[key]||{better:'neutral'}, r=regress(pts);
+  if (!r) return {cls:'neu', text:'Not enough data', dir:0, r};
+  const dir = Math.abs(r.rel) < 0.35 ? 0 : Math.sign(r.change);
+  if (Array.isArray(meta.better)) {
+    const [lo,hi]=meta.better, dist=v=>v<lo?lo-v:v>hi?v-hi:0, ds=dist(r.start), de=dist(r.end);
+    if (de===0 && ds===0) return {cls:'good', text:'In healthy range', dir, r};
+    if (Math.abs(de-ds) < 0.1) return {cls:de?'bad':'good', text:de?'Below target':'In healthy range', dir, r};
+    return de<ds ? {cls:'good', text:'Improving', dir, r} : {cls:'bad', text:'Worsening', dir, r};
+  }
+  if (!dir) return {cls:'neu', text:'Stable', dir, r};
+  if (meta.better==='neutral') return {cls:'neu', text:dir>0?'Rising':'Falling', dir, r};
+  const good = (dir>0) === (meta.better==='up');
+  return {cls:good?'good':'bad', text:good?'Improving':'Worsening', dir, r};
+}
+const chipHTML = j => `<span class="chip ${j.cls}">${j.dir>0?'↗ ':j.dir<0?'↘ ':''}${j.text}</span>`;
+const RANGE_WORDS = {30:'the last 30 days', 90:'the last 90 days', 365:'the last year', 0:'all your history'};
+const monthName = d => new Date(d).toLocaleDateString(undefined,{month:'short', year:'numeric'});
+function cmpWord(a, b, dec, unit, label, F=fmt){
+  const diff=a-b, eps=Math.max(Math.abs(b)*0.01, dec?0.05:0.5);
+  if (Math.abs(diff) < eps) return `about the same as ${label} (${F(b,dec)}${unit})`;
+  return `${diff>0?'up':'down'} ${F(Math.abs(diff),dec)}${unit} on ${label} (${F(b,dec)}${unit})`;
+}
+function trendSummary(key, allPts, rangePts, o, range){
+  const F=o.fmtv?(v=>o.fmtv(v)):fmt, unit=o.fmtv?'':(o.unit||''), meta=METRICS[key]||{better:'neutral'}, j=judge(key, rangePts), out=[], per=o.per||'';
+  if (!allPts.length) return {j, html:'<p>No data yet.</p>', short:''};
+  const endT=allPts[allPts.length-1].t;
+  // small numbers get one extra decimal so comparisons read consistently
+  const dec=(o.dec??0)+((o.dec??0)===0 && Math.abs(allPts[allPts.length-1].v)<300 ? 1 : 0);
+  // 1. direction over the selected range
+  if (j.r) {
+    const verb = j.dir===0 ? `has held steady at about ${F((j.r.start+j.r.end)/2,dec)}${unit}` : `has ${j.dir>0?'risen':'fallen'} from about ${F(j.r.start,dec)}${unit} to ${F(j.r.end,dec)}${unit}`;
+    const tone = j.cls==='good'&&j.dir ? ' — a good direction.' : j.cls==='bad'&&j.dir ? ' — the less favourable direction, worth keeping an eye on.' : '.';
+    out.push(`Over ${RANGE_WORDS[range]||'this period'} it ${verb}${tone}`);
+  }
+  // 2. last 30 days vs before and vs a year ago
+  const r30=windowAvg(allPts,endT,30), p30=windowAvg(allPts,endT-30*DAY,30), y30=windowAvg(allPts,endT-365*DAY,30);
+  if (r30!=null) {
+    let s=`Your last 30 days averaged <b>${F(r30,dec)}${unit}${per}</b>`;
+    const parts=[]; if (p30!=null) parts.push(cmpWord(r30,p30,dec,unit,'the month before',F)); if (y30!=null) parts.push(cmpWord(r30,y30,dec,unit,'the same time last year',F));
+    out.push(s + (parts.length ? ` — ${parts.join(', and ')}.` : '.'));
+  }
+  // 3. this week vs your normal range
+  const base=allPts.filter(p=>p.t>endT-90*DAY && p.t<=endT-7*DAY).map(p=>p.v), wk=windowAvg(allPts,endT,7);
+  if (base.length>=20 && wk!=null) {
+    const m=mean(base), s=sd(base);
+    if (s>0 && Math.abs(wk-m) > s) {
+      const hi=wk>m, good = meta.better==='up' ? hi : meta.better==='down' ? !hi : null;
+      out.push(`This past week (${F(wk,dec)}${unit}) is <b>${hi?'above':'below'} your usual range</b> of ${F(m-s,dec)}–${F(m+s,dec)}${unit}${good===true?', in a good way.':good===false?'. One week isn’t a trend, but watch whether it continues.':'.'}`);
+    } else out.push(`This past week (${F(wk,dec)}${unit}) is within your usual range.`);
+  }
+  // 4. personal best 30-day stretch
+  if ((meta.better==='up'||meta.better==='down') && allPts.length>60) {
+    let best=null; const step=Math.max(1,Math.floor(allPts.length/400));
+    for (let i=0;i<allPts.length;i+=step){ const a=windowAvg(allPts,allPts[i].t,30); if(a==null) continue; if(!best||(meta.better==='up'?a>best.v:a<best.v)) best={v:a,t:allPts[i].t}; }
+    if (best) { const near = r30!=null && Math.abs(r30-best.v) <= Math.max(Math.abs(best.v)*0.03, dec?0.1:1);
+      out.push(`Your best 30-day stretch was <b>${F(best.v,dec)}${unit}</b> (around ${monthName(best.t)})${near?' — you’re right at that level now.':'.'}`); }
+  }
+  if (Array.isArray(meta.better) && r30!=null) {
+    const [lo,hi]=meta.better, nights=allPts.filter(p=>p.t>endT-30*DAY), inR=nights.filter(p=>p.v>=lo&&p.v<=hi).length;
+    out.push(`${inR} of your last ${nights.length} nights were in the ${lo}–${hi}${unit} range.`);
+  }
+  const short = r30==null ? '' : `Last 30 days ${F(r30,dec)}${unit}${per}` + (p30!=null ? ` · ${r30-p30>=0?'+':'−'}${F(Math.abs(r30-p30),dec)} vs month before` : '');
+  return {j, short, html: out.map(s=>`<p>${s}</p>`).join('') + (meta.about?`<p class="about">${meta.about}</p>`:'')};
+}
+
+function chartCard(title, rows, key, o={}) {
+  const mkey=o.mkey||key, c=document.createElement('div'); c.className='card tcard';
+  const all=seriesOf(o.src?o.src():G.days, key), sm=trendSummary(mkey, all, seriesOf(rows,key), o, RANGE);
+  c.innerHTML=`<h2>${title} ${chipHTML(sm.j)}<span class="more">Details ›</span></h2><p class="tline">${sm.short||'&nbsp;'}</p><div></div>`;
+  chart(c.lastChild, rows, key, o);
+  c.onclick = () => openTrend(title, key, o);
+  return c;
+}
+
+let TR=null;
+function openTrend(title, key, o){ TR={title,key,o,range:RANGE}; tip.style.display='none'; $('#trend').showModal(); renderTrend(); $('#trend').scrollTop=0; }
+function closeTrend(){ $('#trend').close(); TR=null; }
+function renderTrend(){
+  const {title,key,o,range}=TR, mkey=o.mkey||key, unit=o.fmtv?'':(o.unit||''), dec=o.dec??0, F=o.fmtv?(v=>o.fmtv(v)):fmt;
+  const allRows=o.src?o.src():G.days, all=seriesOf(allRows,key);
+  const cut = range ? (()=>{const d=new Date(); d.setDate(d.getDate()-range); return +d;})() : 0;
+  const rows=allRows.filter(r=>+new Date(r.d)>=cut), pts=all.filter(p=>p.t>=cut);
+  const sm=trendSummary(mkey, all, pts, o, range);
+  $('#trTitle').textContent=title; $('#trChip').innerHTML=chipHTML(sm.j);
+  const vals=pts.map(p=>p.v), lo=pts.reduce((a,p)=>!a||p.v<a.v?p:a,null), hi=pts.reduce((a,p)=>!a||p.v>a.v?p:a,null);
+  const latest=all.length?all[all.length-1]:null;
+  const months={}; pts.forEach(p=>{const k=p.d.slice(0,7); (months[k]=months[k]||[]).push(p.v);});
+  const mrows=Object.keys(months).sort().reverse().slice(0,36);
+  $('#trBody').innerHTML = `<div class="seg" id="trRange">${[[30,'30d'],[90,'90d'],[365,'1y'],[0,'All']].map(([d,l])=>`<button data-d="${d}" class="${d===range?'on':''}">${l}</button>`).join('')}</div>
+    <div class="sum" style="margin-top:14px">${sm.html}</div>
+    <div class="card" style="margin:14px 0 0"><div id="trChart"></div></div>
+    <div class="grid">${tile(F(mean(vals),dec)+unit,'average')}${tile(latest?F(latest.v,dec)+unit:'–','latest'+(latest?' · '+latest.d.slice(5):''))}
+      ${tile(lo?F(lo.v,dec)+unit:'–','lowest'+(lo?' · '+lo.d:''))}${tile(hi?F(hi.v,dec)+unit:'–','highest'+(hi?' · '+hi.d:''))}</div>
+    <div class="card" style="margin:0"><h2>By month</h2><div class="tw"><table><thead><tr><th>Month</th><th class="n">Average</th><th class="n">Low</th><th class="n">High</th><th class="n">${o.countLabel||(o.src?'Weeks':'Days')}</th></tr></thead><tbody>
+    ${mrows.map(k=>{const v=months[k];return `<tr><td>${monthName(k+'-15')}</td><td class="n">${F(mean(v),dec)}</td><td class="n">${F(Math.min(...v),dec)}</td><td class="n">${F(Math.max(...v),dec)}</td><td class="n">${v.length}</td></tr>`;}).join('')||'<tr><td colspan=5 class="mut">No data in this range</td></tr>'}
+    </tbody></table></div></div>`;
+  chart($('#trChart'), rows, key, {...o, h:240});
+  $('#trRange').onclick = e => { if (e.target.dataset.d==null) return; TR.range=+e.target.dataset.d; renderTrend(); };
+}
+const tile = (v, l) => `<div class="tile"><b>${v}</b><span>${l}</span></div>`;
+
+// ---- tabs ----------------------------------------------------------------
+function overview(){
+  const days=inRange(G.days), acts=inRange(G.activities), el=$('#overview');
+  const all=G.activities;
+  el.innerHTML = expBar([['bytype','By type CSV'],['weekly','Weekly totals CSV'],['health','Daily data CSV']]) + `<div class="grid">
+    ${tile(fmt(acts.length),'activities')}${tile(fmt(sum(acts.map(a=>a.km)),0)+' km','distance')}
+    ${tile(fmt(sum(acts.map(a=>a.sec))/3600,0)+' h','activity time')}${tile(fmt(avg(days.map(d=>d.steps))),'avg daily steps')}
+    ${tile(fmt(avg(days.map(d=>d.rhr))),'avg resting HR')}${tile(fmt(avg(days.map(d=>d.sleepH)),1)+' h','avg sleep')}
+    ${tile(fmt(avg(days.map(d=>d.hrv))),'avg overnight HRV')}${tile(fmt(avg(days.map(d=>d.stress))),'avg stress')}</div>
+    <div class="charts" id="ovc"></div>
+    <div class="card" style="margin-top:16px"><h2>By activity type</h2><div class="tw"><table><thead><tr><th>Type</th><th class="n">Count</th><th class="n">Distance km</th><th class="n">Time h</th><th class="n">Elevation m</th><th class="n">Calories</th></tr></thead><tbody id="bytype"></tbody></table></div></div>`;
+  const by={}; acts.forEach(a=>{const t=by[a.type]||(by[a.type]={n:0,km:0,sec:0,elev:0,kcal:0}); t.n++; t.km+=a.km||0; t.sec+=a.sec||0; t.elev+=a.elev||0; t.kcal+=a.kcal||0;});
+  $('#bytype').innerHTML = Object.entries(by).sort((a,b)=>b[1].n-a[1].n).map(([k,t])=>`<tr onclick="filterType('${esc(k)}')"><td>${label(k)}</td><td class="n">${t.n}</td><td class="n">${fmt(t.km,1)}</td><td class="n">${fmt(t.sec/3600,1)}</td><td class="n">${fmt(t.elev)}</td><td class="n">${fmt(t.kcal)}</td></tr>`).join('') || '<tr><td colspan=6 class="mut">No activities in range</td></tr>';
+  // weekly distance
+  const wk={}; acts.forEach(a=>{ const d=new Date(a.start.slice(0,10)); d.setDate(d.getDate()-((d.getDay()+6)%7)); const k=d.toISOString().slice(0,10); wk[k]=(wk[k]||0)+(a.km||0); });
+  const wrows=Object.keys(wk).sort().map(k=>({d:k,km:+wk[k].toFixed(1)}));
+  const c=$('#ovc'); c.append(chartCard('Weekly distance',wrows,'km',{bar:1,unit:' km',dec:1,per:' a week',mkey:'weeklyKm',src:()=>weeklyRows(G.activities).map(w=>({d:w.d,km:+w.km.toFixed(1)}))}));
+  c.append(chartCard('Daily steps',days,'steps',{bar:1}));
+}
+function health(){
+  const days=inRange(G.days), el=$('#health'); el.innerHTML=expBar([['health','Daily health CSV'],['weights','Weigh-ins CSV']])+'<div class="charts"></div>'; const c=el.querySelector('.charts');
+  [['Resting heart rate','rhr',{unit:' bpm'}],['Overnight HRV','hrv',{unit:' ms'}],['Average stress','stress',{}],
+   ['Body Battery (daily high)','bbHigh',{}],['Training readiness','readiness',{}],['VO₂ max','vo2',{dec:1}],
+   ['Weight','kg',{unit:' kg',dec:1}],['Intensity minutes','intensity',{bar:1}],['Active calories','activeKcal',{bar:1}],
+   ['Floors climbed','floors',{bar:1}],['SpO₂','spo2',{unit:'%'}],['Waking respiration','resp',{unit:' brpm',dec:1}]]
+   .forEach(([t,k,o])=>{ if(G.days.some(d=>d[k]!=null)) c.append(chartCard(t,days,k,o)); });
+  if(!c.children.length) c.outerHTML='<div class="empty">No daily health data yet.</div>';
+}
+function sleep(){
+  const days=inRange(G.days).filter(d=>d.sleepH), el=$('#sleep');
+  el.innerHTML=expBar([['sleep','Sleep CSV']])+`<div class="grid">${tile(fmt(avg(days.map(d=>d.sleepH)),1)+' h','avg sleep')}${tile(fmt(avg(days.map(d=>d.deepH)),1)+' h','avg deep')}${tile(fmt(avg(days.map(d=>d.remH)),1)+' h','avg REM')}${tile(fmt(avg(days.map(d=>d.sleepScore))),'avg sleep score')}</div><div class="charts"></div>
+  <div class="card" style="margin-top:16px"><h2>Recent nights</h2><div class="tw"><table><thead><tr><th>Date</th><th class="n">Total</th><th class="n">Deep</th><th class="n">Light</th><th class="n">REM</th><th class="n">Awake</th><th class="n">Score</th></tr></thead><tbody>${
+   days.slice().reverse().slice(0,120).map(d=>`<tr><td>${d.d}</td><td class="n">${fmt(d.sleepH,1)}</td><td class="n">${fmt(d.deepH,1)}</td><td class="n">${fmt(d.lightH,1)}</td><td class="n">${fmt(d.remH,1)}</td><td class="n">${fmt(d.awakeH,1)}</td><td class="n">${fmt(d.sleepScore)}</td></tr>`).join('')}</tbody></table></div></div>`;
+  const c=el.querySelector('.charts');
+  c.append(chartCard('Sleep duration',days,'sleepH',{unit:' h',dec:1,goal:8}));
+  c.append(chartCard('Sleep score',days,'sleepScore',{}));
+  c.append(chartCard('Deep sleep',days,'deepH',{unit:' h',dec:1}));
+  c.append(chartCard('REM sleep',days,'remH',{unit:' h',dec:1}));
+}
+let SORT={k:'start',dir:-1}, TYPE='', Q='', AVIEW='trends';
+function filterType(t){ TYPE=t; AVIEW='trends'; show('activities'); }
+const isRunT=t=>/run|walk|hik|treadmill|trail/.test(t||''), isSwimT=t=>/swim/.test(t||'');
+const mmss=s=>{ if(s==null||!isFinite(s)) return '–'; s=Math.round(s); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); };
+const durFmt=m=>{ if(m==null||!isFinite(m)) return '–'; m=Math.round(m); return m<60?m+' min':Math.floor(m/60)+'h '+String(m%60).padStart(2,'0')+'m'; };
+function actRows(type){
+  return G.activities.filter(a=>a.start&&(!type||a.type===type)).map(a=>{
+    const r={d:a.start.slice(0,10), id:a.id, km:a.km, min:a.sec?a.sec/60:null, avgHr:a.avgHr, maxHr:a.maxHr, te:a.aerobicTE, ate:a.anaerobicTE,
+             elev:a.elev, cad:a.cadence, power:a.power, kcal:a.kcal, tl:a.tl, stride:a.stride, gct:a.gct};
+    if (a.speed && a.km) {
+      if (isSwimT(a.type)) r.pace100=100/a.speed; else if (isRunT(a.type)) r.pace=1000/a.speed; else r.kmh=+(a.speed*3.6).toFixed(2);
+      if (a.avgHr) r.eff=+(a.speed*60/a.avgHr).toFixed(3);
+    }
+    return r; }).sort((x,y)=>x.d<y.d?-1:1);
+}
+function typeWeekly(type){ return weeklyRows(G.activities.filter(a=>!type||a.type===type)).map(w=>({d:w.d, wkKm:+w.km.toFixed(1), wkH:+(w.sec/3600).toFixed(2)})); }
+const ZONES=[['Zone 1 · Warm up','#98a2b3'],['Zone 2 · Easy','#2e90fa'],['Zone 3 · Aerobic','#12b76a'],['Zone 4 · Threshold','#f79009'],['Zone 5 · Maximum','#f04438']];
+// Heart rate zone settings from Garmin (one profile per sport: DEFAULT, RUNNING, CYCLING...)
+const HR_METHOD = {HR_MAX:'% of max heart rate', HR_RESERVE:'% of heart rate reserve', LACTATE_THRESHOLD:'% of lactate threshold heart rate', LTHR:'% of lactate threshold heart rate'};
+function hrZoneSet(type){
+  const all = Array.isArray(G.hrZones) ? G.hrZones.filter(p=>p && p.zone1Floor) : [];
+  if (!all.length) return null;
+  const want = /run/.test(type||'') ? 'RUNNING' : /cycl|bik|ride/.test(type||'') ? 'CYCLING' : isSwimT(type) ? 'SWIMMING' : 'DEFAULT';
+  const p = all.find(x=>String(x.sport).toUpperCase()===want) || all.find(x=>String(x.sport).toUpperCase()==='DEFAULT') || all[0];
+  const f = [1,2,3,4,5].map(i=>p['zone'+i+'Floor']), max = p.maxHeartRateUsed;
+  return { sport: String(p.sport||'DEFAULT'), method: HR_METHOD[p.trainingMethod] || p.trainingMethod || '', max, rest: p.restingHeartRateUsed, lthr: p.lactateThresholdHeartRateUsed,
+           ranges: f.map((lo,i)=> lo==null ? '' : lo + '–' + (i<4 ? (f[i+1]!=null ? f[i+1]-1 : '') : (max||''))) };
+}
+function zonesHTML(z, note, zs){
+  const tot = z ? z.reduce((a,b)=>a+(b||0),0) : 0;
+  if (!tot && !zs) return '';
+  const head = `<thead><tr><th>Zone</th>${zs?'<th class="n">bpm</th>':''}${tot?'<th class="n">Time</th><th class="n">%</th>':''}</tr></thead>`;
+  return (tot ? `<div style="display:flex;height:14px;border-radius:7px;overflow:hidden;margin:6px 0 10px">${z.map((s,i)=>s?`<div style="width:${s/tot*100}%;background:${ZONES[i][1]}"></div>`:'').join('')}</div>` : '')
+   + `<table>${head}<tbody>${ZONES.map((zn,i)=>`<tr><td><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${zn[1]};margin-right:8px"></span>${zn[0]}</td>${zs?`<td class="n">${zs.ranges[i]}</td>`:''}${tot?`<td class="n">${durFmt((z[i]||0)/60)}</td><td class="n">${fmt((z[i]||0)/tot*100)}%</td>`:''}</tr>`).join('')}</tbody></table>`
+   + (zs ? `<p class="tline" style="margin:10px 0 0">Your Garmin ${zs.sport.toUpperCase()==='DEFAULT'?'':label(zs.sport.toLowerCase())+' '}zones${zs.method?', based on '+zs.method:''}. Max HR ${zs.max||'–'}${zs.rest?' · resting '+zs.rest:''}${zs.lthr?' · lactate threshold '+zs.lthr:''} bpm.</p>` : '')
+   + (note ? `<p class="tline" style="margin:8px 0 0">${note}</p>` : '');
+}
+function actTrendDefs(type){
+  const run=isRunT(type), swim=isSwimT(type), one=!!type, cl={countLabel:'Activities'};
+  const src=()=>actRows(type), wsrc=()=>typeWeekly(type);
+  const defs=[
+    ['Weekly distance','wkKm',{bar:1,unit:' km',dec:1,per:' a week',src:wsrc}],
+    ['Weekly time','wkH',{bar:1,unit:' h',dec:1,per:' a week',src:wsrc}],
+    ['Distance per activity','km',{unit:' km',dec:1,mkey:'actKm',src,...cl}],
+    ['Duration','min',{fmtv:(v,ax)=>ax?Math.round(v)+'m':durFmt(v),mkey:'actMin',src,...cl}],
+  ];
+  if (one && run) defs.push(['Pace','pace',{fmtv:(v,ax)=>mmss(v)+(ax?'':' /km'),src,...cl}]);
+  if (one && swim) defs.push(['Pace per 100 m','pace100',{fmtv:(v,ax)=>mmss(v)+(ax?'':' /100m'),src,...cl}]);
+  if (one && !run && !swim) defs.push(['Average speed','kmh',{unit:' km/h',dec:1,src,...cl}]);
+  defs.push(['Average heart rate','avgHr',{unit:' bpm',src,...cl}]);
+  if (one && !swim) defs.push(['Efficiency (metres per heartbeat)','eff',{unit:' m',dec:2,src,...cl}]);
+  defs.push(['Max heart rate','maxHr',{unit:' bpm',src,...cl}],
+    ['Aerobic training effect','te',{dec:1,src,...cl}],['Anaerobic training effect','ate',{dec:1,src,...cl}],
+    ['Training load','tl',{src,...cl}],['Elevation gain','elev',{unit:' m',src,...cl}]);
+  if (one) defs.push(['Cadence','cad',{unit:run?' spm':' rpm',src,...cl}],['Average power','power',{unit:' W',src,...cl}]);
+  if (one && run) defs.push(['Stride length','stride',{unit:' cm',dec:1,src,...cl}],['Ground contact time','gct',{unit:' ms',src,...cl}]);
+  defs.push(['Calories','kcal',{src,...cl}]);
+  return defs;
+}
+function actTrends(body){
+  const type=TYPE, all=actRows(type), rows=inRange(all), acts=inRange(G.activities).filter(a=>!type||a.type===type);
+  const run=isRunT(type), swim=isSwimT(type);
+  const totSec=sum(acts.map(a=>a.sec)), totKm=sum(acts.map(a=>a.km));
+  const avgSpd = totSec && totKm ? totKm*1000/totSec : null;
+  const speedTile = !type||!avgSpd ? '' : run ? tile(mmss(1000/avgSpd)+' /km','average pace') : swim ? tile(mmss(100/avgSpd)+' /100m','average pace') : tile(fmt(avgSpd*3.6,1)+' km/h','average speed');
+  body.innerHTML = `<div class="grid">${tile(fmt(acts.length),'activities')}${tile(fmt(totKm,0)+' km','distance')}${tile(fmt(totSec/3600,0)+' h','time')}${speedTile}${tile(fmt(avg(acts.map(a=>a.avgHr))),'avg heart rate')}${tile(fmt(sum(acts.map(a=>a.elev)))+' m','climbing')}</div>
+    <div class="card" id="zoneCard"><h2>Heart rate zones <span class="mut" style="font-weight:400">· ${RANGE_WORDS[RANGE]}</span></h2><div id="zoneBody"></div></div>
+    <div class="charts" id="actCharts"></div>`;
+  const z=[0,0,0,0,0]; let withZ=0; acts.forEach(a=>{ if(a.z){ withZ++; a.z.forEach((s,i)=>z[i]+=s||0); } });
+  const easy=z[0]+z[1], tot=z.reduce((a,b)=>a+b,0);
+  const zs = hrZoneSet(type);
+  $('#zoneBody').innerHTML = tot ? zonesHTML(z, `${fmt(easy/tot*100)}% of your time was in zones 1–2. Many endurance plans aim for roughly 75–80% easy, with the rest harder. Based on ${withZ} activities with heart rate.`, zs)
+    : zs ? zonesHTML(null, 'No time-in-zone data for these activities yet.', zs)
+    : `<p class="mut" style="margin:0">${G.activities.some(a=>a.z)?'No heart rate zone data for these activities.':'Heart rate zones will appear after the next sync.'}</p>`;
+  const c=$('#actCharts');
+  actTrendDefs(type).forEach(([t,k,o])=>{
+    const src=o.src(), r=inRange(src);
+    if (src.some(x=>x[k]!=null)) c.append(chartCard(t, r, k, o));
+  });
+  if (!c.children.length) c.innerHTML='<div class="empty">No activities yet.</div>';
+}
+// ---- personal records -------------------------------------------------------------
+// Garmin PR type ids (from Garmin Connect). kind: time = seconds over a fixed distance, dist = metres, ...
+const PR_TYPES = {
+  1:['Fastest 1 km','time',1000,'run'], 2:['Fastest mile','time',1609.344,'run'], 3:['Fastest 5K','time',5000,'run'], 4:['Fastest 10K','time',10000,'run'],
+  5:['Fastest half marathon','time',21097.5,'run'], 6:['Fastest marathon','time',42195,'run'], 7:['Longest run','dist',null,'run'],
+  8:['Longest ride','dist',null,'ride'], 9:['Most climbing in a ride','elev',null,'ride'], 10:['Best 20-min power','power',null,'ride'], 11:['Fastest 40 km ride','time',40000,'ride'],
+  12:['Most steps in a day','steps',null,'steps'], 13:['Most steps in a week','steps',null,'steps'], 14:['Most steps in a month','steps',null,'steps'],
+  15:['Longest step-goal streak','days',null,'steps'], 16:['Current step-goal streak','days',null,'steps'],
+};
+function prInfo(r){
+  const known = PR_TYPES[r.typeId];
+  if (known) return {title:known[0], kind:known[1], dist:known[2], group:known[3]};
+  // unknown (e.g. swim records): build a label from Garmin's key, e.g. "pr.label.swim.100m"
+  const key = String(r.prTypeLabelKey||'').replace(/^pr\.label\./,'').replace(/[._]/g,' ').trim();
+  const swim = /swim/i.test(key) || /swim/.test(String((r.activityType||{}).typeKey||''));
+  const m = key.match(/(\d+(?:\.\d+)?)\s*(m|km|yd|mi)\b/i);
+  const dist = m ? (+m[1]) * ({m:1,km:1000,yd:0.9144,mi:1609.344}[m[2].toLowerCase()]) : null;
+  const longest = /longest|distance/i.test(key);
+  return {title: key ? key.replace(/\b\w/g,c=>c.toUpperCase()) : 'Record #'+r.typeId, kind: longest?'dist':dist?'time':'value', dist, group: swim?'swim':'other'};
+}
+const prDate = r => { const s = r.prStartTimeLocalFormatted || r.actStartDateTimeLocalFormatted || r.prStartTimeLocal || r.activityStartDateTimeLocal || r.prStartTimeGmtFormatted;
+  if (!s) return null; const d = new Date(typeof s==='number'? s : String(s).replace(' ','T')); return isNaN(d) ? null : d; };
+function ago(d){ if(!d) return ''; const days=Math.floor((Date.now()-d)/DAY); if(days<1) return 'today'; if(days<31) return days+' day'+(days>1?'s':'')+' ago';
+  const mo=Math.floor(days/30.44); if(mo<12) return mo+' month'+(mo>1?'s':'')+' ago'; const y=Math.floor(mo/12), rm=mo%12; return y+' yr'+(y>1?'s':'')+(rm?' '+rm+' mo':'')+' ago'; }
+const clock = s => { if(s==null) return '–'; s=Math.round(s); const h=Math.floor(s/3600), m=Math.floor(s%3600/60), x=s%60; return (h?h+':'+String(m).padStart(2,'0'):m)+':'+String(x).padStart(2,'0'); };
+function prValue(r, info){
+  const v=r.value;
+  switch(info.kind){
+    case 'time': { const pace = info.dist ? (info.group==='ride' ? fmt(info.dist/1000/(v/3600),1)+' km/h' : info.group==='swim' ? mmss(v/(info.dist/100))+' /100m' : mmss(v/(info.dist/1000))+' /km') : '';
+                   return {main:clock(v), sub:pace}; }
+    case 'dist': return {main:fmt(v/1000, v>=100000?0:2)+' km', sub:''};
+    case 'elev': return {main:fmt(v)+' m', sub:''};
+    case 'power': return {main:fmt(v)+' W', sub:''};
+    case 'steps': return {main:fmt(v), sub:'steps'};
+    case 'days': return {main:fmt(v), sub:'days'};
+    default: return {main:fmt(v, v<100?2:0), sub:''};
+  }
+}
+const groupOfType = t => !t ? null : isRunT(t) ? 'run' : /cycl|bik|ride/.test(t) ? 'ride' : isSwimT(t) ? 'swim' : 'other';
+// Garmin record type -> best-effort key that Garmin stores on every run (fastestSplit_<metres>)
+const PR_EFFORT = {1:'1000', 2:'1609', 3:'5000', 4:'10000', 5:'21098', 6:'42195'};
+const EFFORTS = [['1000','Fastest 1 km',1000,1],['1609','Fastest mile',1609.344,2],['5000','Fastest 5K',5000,3],['10000','Fastest 10K',10000,4],['21098','Fastest half marathon',21097.5,5],['42195','Fastest marathon',42195,6]];
+const RUN_ONLY = t => /run/.test(t||'');
+// Men's world records (seconds): anything faster is a GPS glitch or a ride/drive saved as a run, so it's ignored.
+const WORLD_RECORD = {'1000':131.96, '1609':223.13, '5000':755.36, '10000':1571, '21098':3451, '42195':7235};
+const plausible = (key, s) => s >= (WORLD_RECORD[key] || 0);
+function bestEfforts(key, n=5, sinceYear){
+  return G.activities.filter(a=>RUN_ONLY(a.type) && a.fs && a.fs[key] && plausible(key, a.fs[key]) && (!sinceYear || (a.start||'').startsWith(sinceYear)))
+    .map(a=>({...a, est:a.fs[key]})).sort((x,y)=>x.est-y.est).slice(0,n);
+}
+// Running records = the faster of Garmin's record and your best effort within any run (Garmin's list often misses records).
+function runRecords(recs){
+  const out=[];
+  EFFORTS.forEach(([key,title,dist,typeId])=>{
+    const g=recs.find(r=>r.typeId===typeId), mine=bestEfforts(key,1)[0];
+    if (mine && (!g || mine.est < g.value - 0.5)) {
+      const d=new Date((mine.start||'').replace(' ','T'));
+      out.push({typeId, value:mine.est, activityId:mine.id, activityName:mine.name, _date:isNaN(d)?null:d,
+                _miss: g ? `Garmin's record list shows ${clock(g.value)}${prDate(g)?' ('+prDate(g).toLocaleDateString(undefined,{month:'short',year:'numeric'})+')':''}` : 'Not in Garmin\u2019s record list'});
+    } else if (g) out.push(g);
+  });
+  recs.filter(r=>prInfo(r).group==='run' && !PR_EFFORT[r.typeId]).forEach(r=>out.push(r));   // longest run etc.
+  return out;
+}
+function prCard(r){
+  const info=prInfo(r), val=prValue(r,info), d=r._date||prDate(r), recent = d && (Date.now()-d) < 60*DAY;
+  return `<div class="pr" data-aid="${r.activityId||''}"><div class="t">${esc(info.title)}</div><b>${val.main}</b>
+    <div class="s">${val.sub?esc(val.sub)+'<br>':''}${d?d.toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'})+' · '+ago(d):''}${recent?'<span class="new">NEW</span>':''}
+    ${r.activityName?'<br>'+esc(r.activityName):''}${r._miss?'<span class="miss">\u26a0 '+esc(r._miss)+'</span>':''}</div></div>`;
+}
+const BEST_DISTANCES = { run:[['5K',5],['10K',10],['Half marathon',21.0975],['Marathon',42.195]], ride:[['40 km',40],['100 km',100]], swim:[['1,500 m',1.5]] };
+function topEfforts(type, km, n=5){
+  return G.activities.filter(a=>a.type===type && a.km && a.sec && a.km>=km*0.97 && a.km<=km*1.06)
+    .map(a=>({...a, est: a.sec*km/a.km})).sort((a,b)=>a.est-b.est).slice(0,n);
+}
+function actRecords(body){
+  const type=TYPE, grp=groupOfType(type), recs=(G.records||[]);
+  const mine = grp==='run' ? runRecords(recs) : recs.filter(r=>{ const g=prInfo(r).group; return g!=='steps' && (!grp || g===grp || (grp==='other' && g==='other')); })
+                   .sort((a,b)=>(a.typeId||99)-(b.typeId||99));
+  const steps = recs.filter(r=>prInfo(r).group==='steps').sort((a,b)=>a.typeId-b.typeId);
+  let html = `<div class="card"><h2>Garmin personal records${type?' · '+label(type):''}</h2>`;
+  html += mine.length ? `<div class="prgrid">${mine.map(prCard).join('')}</div><p class="tline" style="margin:0">${grp==='run'?'Your fastest time over each distance within any run (trail, track and treadmill runs included), checked against Garmin\u2019s record list, which often misses records. ':'From Garmin Connect. '}Tap a record to see the activity.</p>`
+    : `<p class="mut" style="margin:0">${recs.length ? 'No Garmin records for this activity type.' : 'Your Garmin records will appear after the next sync.'}</p>`;
+  html += `</div>`;
+  // top efforts per distance, from your activities
+  const yr = String(new Date().getFullYear());
+  if (grp==='run') EFFORTS.slice(2).forEach(([key,title,dist])=>{
+    const top=bestEfforts(key); if(!top.length) return;
+    const name=title.replace('Fastest ',''), km=dist/1000, yb=bestEfforts(key,1,yr)[0];
+    html += `<div class="card"><h2>Top ${top.length} \u00b7 ${name} <span class="mut" style="font-weight:400">${yb?'\u00b7 best in '+yr+': '+clock(yb.est):''}</span></h2><div class="tw"><table><thead><tr><th></th><th>Date</th><th class="n">Time</th><th class="n">Pace</th><th class="n">Run</th><th>Activity</th></tr></thead><tbody>
+      ${top.map((a,i)=>`<tr data-id="${a.id}"><td><span class="rk ${i===0?'g':''}">${i+1}</span></td><td>${esc((a.start||'').slice(0,10))}</td><td class="n"><b>${clock(a.est)}</b></td><td class="n">${mmss(a.est/km)} /km</td><td class="n">${fmt(a.km,1)} km</td><td>${esc(a.name||'')}</td></tr>`).join('')}
+      </tbody></table></div><p class="tline" style="margin:8px 0 0">Fastest ${name} stretch within each run, as measured by your watch.</p></div>`;
+  });
+  const dists = grp && grp!=='run' ? (BEST_DISTANCES[grp]||[]) : [];
+  dists.forEach(([name,km])=>{
+    const top=topEfforts(type,km); if(!top.length) return;
+    const yearBest = G.activities.filter(a=>a.type===type && a.km && a.sec && a.km>=km*0.97 && a.km<=km*1.06 && (a.start||'').startsWith(yr)).map(a=>a.sec*km/a.km).sort((a,b)=>a-b)[0];
+    html += `<div class="card"><h2>Top ${top.length} · ${name} <span class="mut" style="font-weight:400">${yearBest!=null?'· best in '+yr+': '+clock(yearBest):''}</span></h2><div class="tw"><table><thead><tr><th></th><th>Date</th><th class="n">Time*</th><th class="n">Pace</th><th class="n">Avg HR</th><th>Activity</th></tr></thead><tbody>
+      ${top.map((a,i)=>`<tr data-id="${a.id}"><td><span class="rk ${i===0?'g':''}">${i+1}</span></td><td>${esc((a.start||'').slice(0,10))}</td><td class="n">${clock(a.est)}</td><td class="n">${grp==='ride'?fmt(km/(a.est/3600),1)+' km/h':grp==='swim'?mmss(a.est/(km*10))+' /100m':mmss(a.est/km)+' /km'}</td><td class="n">${fmt(a.avgHr)}</td><td>${esc(a.name||'')}</td></tr>`).join('')}
+      </tbody></table></div><p class="tline" style="margin:8px 0 0">*Whole activities of about ${name} (within a few %), time scaled to exactly ${name}.</p></div>`;
+  });
+  // longest / most climbing / longest time for this type
+  if (type) {
+    const A=G.activities.filter(a=>a.type===type);
+    const lists=[['Longest',a=>a.km,a=>fmt(a.km,2)+' km'],['Longest time',a=>a.sec,a=>hms(a.sec)],['Most climbing',a=>a.elev,a=>fmt(a.elev)+' m']];
+    lists.forEach(([t,k,f])=>{ const top=A.filter(a=>k(a)).sort((a,b)=>k(b)-k(a)).slice(0,5); if(!top.length) return;
+      html += `<div class="card"><h2>${t} · top ${top.length}</h2><div class="tw"><table><tbody>${top.map((a,i)=>`<tr data-id="${a.id}"><td><span class="rk ${i===0?'g':''}">${i+1}</span></td><td>${esc((a.start||'').slice(0,10))}</td><td class="n"><b>${f(a)}</b></td><td>${esc(a.name||'')}</td></tr>`).join('')}</tbody></table></div></div>`; });
+  }
+  if (steps.length) html += `<div class="card"><h2>Step records</h2><div class="prgrid" style="margin:0">${steps.map(prCard).join('')}</div></div>`;
+  html += expBar([['prs','Records CSV']]);
+  body.innerHTML = html;
+  body.querySelectorAll('[data-aid]').forEach(c=>c.onclick=()=>{ const id=+c.dataset.aid; if(!id) return;
+    if (G.activities.some(a=>a.id===id)) detail(id); else window.open('https://connect.garmin.com/modern/activity/'+id,'_blank'); });
+  body.querySelectorAll('tr[data-id]').forEach(tr=>tr.onclick=()=>detail(+tr.dataset.id));
+}
+
+function activities(){
+  const el=$('#activities'), types=[...new Set(G.activities.map(a=>a.type))];
+  const counts={}; G.activities.forEach(a=>counts[a.type]=(counts[a.type]||0)+1); types.sort((a,b)=>counts[b]-counts[a]);
+  if(!el.innerHTML){
+    el.innerHTML=`<div class="bar"><select id="ftype"><option value="">All activity types</option>${types.map(t=>`<option value="${esc(t)}">${label(t)} (${counts[t]})</option>`).join('')}</select>
+      <div class="seg" id="aview"><button data-v="trends">Trends</button><button data-v="records">Records</button><button data-v="list">List</button></div></div><div id="actBody"></div>`;
+    $('#ftype').onchange=e=>{TYPE=e.target.value; activities();};
+    $('#aview').onclick=e=>{ if(!e.target.dataset.v) return; AVIEW=e.target.dataset.v; activities(); };
+    if (!TYPE && types.length) TYPE=types[0];   // start on your most common activity
+  }
+  $('#ftype').value=TYPE;
+  document.querySelectorAll('#aview button').forEach(b=>b.classList.toggle('on',b.dataset.v===AVIEW));
+  const body=$('#actBody');
+  if (AVIEW==='trends') { body.dataset.v='trends'; actTrends(body); return; }
+  if (AVIEW==='records') { body.dataset.v='records'; actRecords(body); return; }
+  if (body.dataset.v!=='list') {
+    body.dataset.v='list';
+    body.innerHTML=`<div class="bar"><input id="q" placeholder="Search name or location" style="flex:1;min-width:160px" value="${esc(Q)}"><button class="dl" id="csv">CSV</button><span class="mut" id="cnt"></span></div>
+      <div class="card"><div class="tw"><table><thead><tr>
+      ${[['start','Date'],['name','Name'],['type','Type'],['km','Km','n'],['sec','Time','n'],['speed','Pace/speed','n'],['avgHr','Avg HR','n'],['elev','Elev m','n'],['kcal','kcal','n'],['aerobicTE','TE','n']].map(([k,l,c])=>`<th data-k="${k}" class="${c||''}">${l}</th>`).join('')}
+      </tr></thead><tbody id="atb"></tbody></table></div></div>`;
+    $('#q').oninput=e=>{Q=e.target.value.toLowerCase(); activities();};
+    body.querySelectorAll('th').forEach(th=>th.onclick=()=>{const k=th.dataset.k; SORT={k,dir:SORT.k===k?-SORT.dir:-1}; activities();});
+    $('#csv').onclick=EXPORTS.activities;
+  }
+  const rows=currentActs();
+  $('#cnt').textContent=`${rows.length} activities`;
+  $('#atb').innerHTML=rows.slice(0,2000).map(a=>`<tr data-id="${a.id}"><td>${esc((a.start||'').slice(0,16))}</td><td>${esc(a.name)}</td><td><span class="pill">${label(a.type)}</span></td><td class="n">${fmt(a.km,2)}</td><td class="n">${hms(a.sec)}</td><td class="n">${pace(a)}</td><td class="n">${fmt(a.avgHr)}</td><td class="n">${fmt(a.elev)}</td><td class="n">${fmt(a.kcal)}</td><td class="n">${fmt(a.aerobicTE,1)}</td></tr>`).join('') || '<tr><td colspan=10 class="mut">No activities</td></tr>';
+  $('#atb').querySelectorAll('tr[data-id]').forEach(tr=>tr.onclick=()=>detail(+tr.dataset.id));
+}
+function currentActs(){
+  return inRange(G.activities).filter(a=>(!TYPE||a.type===TYPE)&&(!Q||((a.name||'')+' '+(a.loc||'')).toLowerCase().includes(Q)))
+    .sort((a,b)=>{const x=a[SORT.k],y=b[SORT.k]; return (x==null)-(y==null) || (x<y?-1:x>y?1:0)*SORT.dir;});
+}
+function detail(id){
+  const a=G.activities.find(x=>x.id===id); if(!a) return;
+  const f=[['Date',a.start],['Type',label(a.type)],['Distance',a.km!=null?fmt(a.km,2)+' km':null],['Duration',hms(a.sec)],['Moving time',a.movSec?hms(a.movSec):null],['Pace / speed',pace(a)],
+   ['Avg / max HR',a.avgHr?`${fmt(a.avgHr)} / ${fmt(a.maxHr)} bpm`:null],['Elevation gain',a.elev!=null?a.elev+' m':null],['Calories',a.kcal],['Cadence',a.cadence?fmt(a.cadence):null],['Avg power',a.power?fmt(a.power)+' W':null],
+   ['Training effect',a.aerobicTE?`${fmt(a.aerobicTE,1)} aerobic`+(a.anaerobicTE?` / ${fmt(a.anaerobicTE,1)} anaerobic`:''):null],['VO₂ max',a.vo2],['Steps',a.steps],['Location',a.loc],['Notes',a.desc]];
+  $('#dlgBody').innerHTML=`<h2 style="font-size:18px">${esc(a.name||label(a.type))}</h2><dl>${f.filter(r=>r[1]!=null&&r[1]!=='–').map(r=>`<dt>${r[0]}</dt><dd>${esc(r[1])}</dd>`).join('')}</dl>
+   <p>${a.fit?`<a href="activities/fit/${a.id}.zip" download>Original FIT file</a> · `:''}${a.gpx?`<a href="activities/gpx/${a.id}.gpx" download>GPX</a> · `:''}${a.lat?`<a href="https://www.openstreetmap.org/?mlat=${a.lat}&mlon=${a.lon}#map=13/${a.lat}/${a.lon}" target="_blank">Start on map</a> · `:''}<a href="https://connect.garmin.com/modern/activity/${a.id}" target="_blank">Open in Garmin Connect</a></p>`;
+  // compare with your usual for this type (previous 90 days, excluding this one)
+  const t0=+new Date(a.start.slice(0,10)), peers=actRows(a.type).filter(r=>r.id!==a.id && +new Date(r.d)<=t0 && +new Date(r.d)>t0-90*DAY);
+  const me=actRows(a.type).find(r=>r.id===a.id)||{}, run=isRunT(a.type), swim=isSwimT(a.type);
+  const cmpDefs=[['Distance','km',v=>fmt(v,2)+' km','neutral'],['Duration','min',durFmt,'neutral'],
+    run?['Pace','pace',v=>mmss(v)+' /km','down']:swim?['Pace','pace100',v=>mmss(v)+' /100m','down']:['Speed','kmh',v=>fmt(v,1)+' km/h','up'],
+    ['Avg heart rate','avgHr',v=>fmt(v)+' bpm','neutral'],['Efficiency','eff',v=>fmt(v,2)+' m/beat','up'],['Training effect','te',v=>fmt(v,1),'neutral'],['Elevation','elev',v=>fmt(v)+' m','neutral']];
+  const cmpRows=cmpDefs.map(([l,k,f,b])=>{ const mv=me[k], pv=peers.map(p=>p[k]).filter(v=>v!=null); if(mv==null||pv.length<3) return '';
+    const u=mean(pv), d=mv-u, rel=Math.abs(d)/(Math.abs(u)||1);
+    const tone = rel<0.03 ? '<span class="mut">typical</span>' : b==='neutral' ? `<span class="mut">${d>0?'higher':'lower'}</span>` :
+      ((d>0)===(b==='up')) ? '<span class="chip good">better</span>' : '<span class="chip bad">below usual</span>';
+    return `<tr><td>${l}</td><td class="n">${f(mv)}</td><td class="n">${f(u)}</td><td class="n">${tone}</td></tr>`; }).join('');
+  const extra = (cmpRows ? `<h3 style="font-size:15px;margin:16px 0 4px">Compared with your usual</h3><p class="tline" style="margin:0 0 4px">Your average ${label(a.type).toLowerCase()} over the 90 days before this one (${peers.length} activities).</p>
+      <table><thead><tr><th></th><th class="n">This</th><th class="n">Usual</th><th class="n"></th></tr></thead><tbody>${cmpRows}</tbody></table>` : '')
+    + (a.fs ? `<h3 style="font-size:15px;margin:16px 0 4px">Best efforts in this run</h3><table><tbody>${EFFORTS.filter(([k])=>a.fs[k] && plausible(k,a.fs[k])).map(([k,t,dist])=>{
+        const best=bestEfforts(k,1)[0], isBest=best && best.id===a.id;
+        return `<tr><td>${t.replace('Fastest ','')}</td><td class="n"><b>${clock(a.fs[k])}</b></td><td class="n">${mmss(a.fs[k]/(dist/1000))} /km</td><td class="n">${isBest?'<span class="chip good">your record</span>':best?'<span class="mut">record '+clock(best.est)+'</span>':''}</td></tr>`;}).join('')}</tbody></table>` : '')
+    + (a.z && a.z.some(s=>s) ? `<h3 style="font-size:15px;margin:16px 0 4px">Heart rate zones</h3>${zonesHTML(a.z, '', hrZoneSet(a.type))}` : '')
+    + ((a.tl||a.teLabel) ? `<p class="tline" style="margin:12px 0 0">${a.teLabel?'Primary benefit: <b>'+esc(label(String(a.teLabel).toLowerCase()))+'</b>. ':''}${a.tl?'Training load '+fmt(a.tl)+'.':''}</p>` : '');
+  $('#dlgBody').insertAdjacentHTML('beforeend', extra);
+  $('#dlg').showModal();
+}
+// ---- exports --------------------------------------------------------------
+const RANGE_TAG = () => ({30:'30d',90:'90d',365:'1y',0:'all'})[RANGE] || RANGE+'d';
+const today = () => { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+function saveFile(name, text, mime){
+  const u=URL.createObjectURL(new Blob([text],{type:mime})); const l=document.createElement('a');
+  l.href=u; l.download=name; document.body.appendChild(l); l.click(); l.remove(); setTimeout(()=>URL.revokeObjectURL(u),2000);
+}
+function toCSV(rows, cols){ // cols: [[header, key | fn]]
+  const q=v=>v==null?'':/[",\n]/.test(String(v))?'"'+String(v).replace(/"/g,'""')+'"':v;
+  const get=(r,c)=>typeof c==='function'?c(r):r[c];
+  const used=cols.filter(([,c])=>rows.some(r=>get(r,c)!=null&&get(r,c)!==''));
+  return '﻿'+[used.map(c=>q(c[0])).join(','),...rows.map(r=>used.map(([,c])=>q(get(r,c))).join(','))].join('\r\n');
+}
+function exportCSV(what, rows, cols, allTime){
+  if(!rows.length){ alert('Nothing to export in this time range.'); return; }
+  saveFile(`garmin_${what}_${allTime?'all':RANGE_TAG()}_${today()}.csv`, toCSV(rows, cols), 'text/csv;charset=utf-8');
+}
+const hmsCol = k => r => r[k] ? hms(r[k]) : null;
+const ACT_COLS=[['Activity ID','id'],['Start (local)','start'],['Name','name'],['Type',r=>label(r.type)],['Distance km','km'],['Duration',hmsCol('sec')],['Duration s','sec'],['Moving time',hmsCol('movSec')],
+  ['Pace / speed',r=>r.km&&r.speed?pace(r):null],['Avg speed m/s','speed'],['Avg HR','avgHr'],['Max HR','maxHr'],['Elevation gain m','elev'],['Calories','kcal'],['Cadence','cadence'],['Avg power W','power'],
+  ['Aerobic TE','aerobicTE'],['Anaerobic TE','anaerobicTE'],['VO2 max','vo2'],['Steps','steps'],['Location','loc'],['Start lat','lat'],['Start lon','lon'],['Notes','desc']];
+const HEALTH_COLS=[['Date','d'],['Steps','steps'],['Step goal','stepGoal'],['Distance km','km'],['Total kcal','kcal'],['Active kcal','activeKcal'],['Resting HR','rhr'],['Max HR','maxHr'],
+  ['Avg stress','stress'],['Body Battery high','bbHigh'],['Body Battery low','bbLow'],['Floors','floors'],['Intensity minutes','intensity'],['Overnight HRV ms','hrv'],['Training readiness','readiness'],
+  ['VO2 max','vo2'],['SpO2 %','spo2'],['Waking respiration brpm','resp'],['Weight kg','kg']];
+const SLEEP_COLS=[['Date','d'],['Total sleep h','sleepH'],['Deep h','deepH'],['Light h','lightH'],['REM h','remH'],['Awake h','awakeH'],['Sleep score','sleepScore']];
+const WEIGHT_COLS=[['Date','d'],['Weight kg','kg'],['BMI','bmi'],['Body fat %','fat'],['Muscle mass kg','muscleKg']];
+function byTypeRows(acts){
+  const by={}; acts.forEach(a=>{const t=by[a.type]||(by[a.type]={type:a.type,n:0,km:0,sec:0,elev:0,kcal:0}); t.n++; t.km+=a.km||0; t.sec+=a.sec||0; t.elev+=a.elev||0; t.kcal+=a.kcal||0;});
+  return Object.values(by).sort((a,b)=>b.n-a.n);
+}
+function weeklyRows(acts){
+  const wk={}; acts.forEach(a=>{ if(!a.start) return; const d=new Date(a.start.slice(0,10)); d.setDate(d.getDate()-((d.getDay()+6)%7)); const k=d.toISOString().slice(0,10);
+    const w=wk[k]||(wk[k]={d:k,n:0,km:0,sec:0,elev:0,kcal:0}); w.n++; w.km+=a.km||0; w.sec+=a.sec||0; w.elev+=a.elev||0; w.kcal+=a.kcal||0; });
+  return Object.values(wk).sort((a,b)=>a.d<b.d?-1:1);
+}
+const SUM_COLS=[['Activities','n'],['Distance km',r=>+r.km.toFixed(2)],['Time h',r=>+(r.sec/3600).toFixed(2)],['Elevation m',r=>Math.round(r.elev)],['Calories',r=>Math.round(r.kcal)]];
+const sleepDays = () => inRange(G.days).filter(d=>d.sleepH);
+const EXPORTS = {
+  activities: () => exportCSV('activities', currentActs(), ACT_COLS),
+  bytype:     () => exportCSV('activity_types', byTypeRows(inRange(G.activities)), [['Type',r=>label(r.type)],...SUM_COLS]),
+  weekly:     () => exportCSV('weekly_totals', weeklyRows(inRange(G.activities)), [['Week starting','d'],...SUM_COLS]),
+  health:     () => exportCSV('daily_health', inRange(G.days).filter(d=>Object.keys(d).length>1), HEALTH_COLS),
+  weights:    () => exportCSV('weigh_ins', inRange(G.weights), WEIGHT_COLS),
+  sleep:      () => exportCSV('sleep', sleepDays(), SLEEP_COLS),
+  records:    () => exportCSV('longest_efforts', bestRows(), [['Type',r=>label(r.type)],['Activities','n'],['Longest distance km',r=>r.l&&r.l.km],['Longest distance date',r=>r.l&&r.l.start],['Longest time',r=>r.d&&hms(r.d.sec)],['Longest time date',r=>r.d&&r.d.start],['Most climbing m',r=>r.e&&r.e.elev],['Most climbing date',r=>r.e&&r.e.start]], true),
+  allActs:    () => exportCSV('activities', G.activities, ACT_COLS, true),
+  allDays:    () => exportCSV('daily_health_and_sleep', G.days.filter(d=>Object.keys(d).length>1), [...HEALTH_COLS, ...SLEEP_COLS.slice(1)], true),
+  allWeights: () => exportCSV('weigh_ins', G.weights, WEIGHT_COLS, true),
+  prs:        () => exportCSV('personal_records', [...runRecords(G.records||[]), ...(G.records||[]).filter(r=>prInfo(r).group!=='run')].map(r=>{ const i=prInfo(r), v=prValue(r,i), d=r._date||prDate(r); return {...r, _t:i.title, _v:v.main, _s:v.sub, _d:d?d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'):''}; }),
+                  [['Record','_t'],['Value','_v'],['Pace / unit','_s'],['Raw value','value'],['Date set','_d'],['Activity','activityName'],['Activity ID','activityId'],['Note','_miss'],['Garmin type','typeId']], true),
+  json:       () => saveFile(`garmin_all_data_${today()}.json`, JSON.stringify(G, null, 1), 'application/json'),
+};
+const expBar = btns => `<div class="exp">${btns.map(([k,l])=>`<button class="dl" onclick="EXPORTS.${k}()">${l}</button>`).join('')}</div>`;
+function bestRows(){
+  const A=G.activities, best=(t,k)=>A.filter(a=>a.type===t&&a[k]).sort((a,b)=>b[k]-a[k])[0];
+  return [...new Set(A.map(a=>a.type))].map(t=>({type:t, n:A.filter(a=>a.type===t).length, l:best(t,'km'), d:best(t,'sec'), e:best(t,'elev')})).sort((a,b)=>b.n-a.n);
+}
+function more(){
+  const el=$('#more');
+  const rows=bestRows().map(r=>`<tr><td>${label(r.type)}</td><td class="n">${r.l?fmt(r.l.km,1)+' km':'–'}</td><td class="n">${r.d?hms(r.d.sec):'–'}</td><td class="n">${r.e?fmt(r.e.elev)+' m':'–'}</td><td class="n">${r.n}</td></tr>`).join('');
+  el.innerHTML=`<div class="card"><h2>Download all my data</h2><p class="mut" style="margin-top:0">Everything, all time. CSV files open in Excel, Google Sheets or Numbers.</p>
+   ${expBar([['allActs','All activities CSV'],['allDays','All daily health & sleep CSV'],['allWeights','All weigh-ins CSV'],['prs','Personal records CSV'],['records','Longest efforts CSV'],['json','Everything (JSON)']])}</div>
+  <div class="card"><h2>Longest efforts (all time)</h2><div class="tw"><table><thead><tr><th>Type</th><th class="n">Longest distance</th><th class="n">Longest time</th><th class="n">Most climbing</th><th class="n">Total count</th></tr></thead><tbody>${rows||'<tr><td colspan=5 class="mut">No activities</td></tr>'}</tbody></table></div></div>
+  <div class="card"><h2>Devices</h2>${G.devices.length?'<table><thead><tr><th>Device</th><th>Firmware</th></tr></thead><tbody>'+G.devices.map(d=>`<tr><td>${esc(d.name)}</td><td>${esc(d.fw||'')}</td></tr>`).join('')+'</tbody></table>':'<p class="mut">None saved.</p>'}</div>
+  <div class="card"><h2>Sync</h2><p class="mut">Last synced ${G.generated?new Date(G.generated).toLocaleString():'–'}. ${G.activities.length} activities, ${G.days.length} days, ${G.weights.length} weigh-ins.${G.meta&&G.meta.complete===false?' Older history is still downloading.':''}</p>
+   <div class="links">${REPO?`<a href="${REPO}/actions/workflows/sync.yml" target="_blank">Sync now / enter verification code</a><a href="${REPO}/actions" target="_blank">Sync history</a>`:''}</div>
+   <button class="btn" onclick="lockNow()">Lock &amp; forget passphrase on this device</button></div>
+  <div class="card"><h2>Install as an app</h2>${installEvt?'<p class="mut" style="margin-top:0">Adds Garmin Dashboard to your home screen and app drawer. It opens full screen and works offline with your last sync.</p><button class="btn" onclick="installApp()">Install app</button>':
+   window.matchMedia('(display-mode: standalone)').matches?'<p class="mut" style="margin:0">✓ Installed. It also works offline, showing your last sync.</p>':
+   '<p class="mut" style="margin:0">Android (Chrome): tap ⋮ → <b>Install app</b> or <b>Add to Home screen</b>.<br>iPhone (Safari): tap Share → <b>Add to Home Screen</b>.</p>'}</div>`;
+}
+const RENDER={overview,health,sleep,activities,more};
+$('#trend').addEventListener('close', ()=>{ TR=null; tip.style.display='none'; });
+let TAB='overview';
+function show(t){ TAB=t; document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t)); document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id===t)); RENDER[t](); }
+$('#tabs').onclick=e=>{ if(e.target.dataset.t) show(e.target.dataset.t); };
+$('#range').onclick=e=>{ if(e.target.dataset.d==null) return; RANGE=+e.target.dataset.d; document.querySelectorAll('#range button').forEach(b=>b.classList.toggle('on',b===e.target)); show(TAB); };
+// ---- app install / offline -------------------------------------------------
+let installEvt = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; if (TAB==='more' && G) more(); });
+window.addEventListener('appinstalled', () => { installEvt = null; if (TAB==='more' && G) more(); });
+async function installApp(){ if(!installEvt) return; installEvt.prompt(); await installEvt.userChoice; installEvt = null; if (G) more(); }
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+function startApp(){
+  $('#title').textContent = G.name ? G.name.split(' ')[0]+"'s Garmin" : 'Garmin Dashboard';
+  const span = G.days.length ? `${G.days[0].d} → ${G.days[G.days.length-1].d}` : '';
+  $('#sub').textContent = `${G.activities.length} activities · ${G.days.length} days ${span}`;
+  $('#lock').remove(); show('overview');
+}
+// ---- decryption (matches garmin_sync.py) -----------------------------------
+const REPO = location.hostname.endsWith('github.io') ? `https://github.com/${location.hostname.split('.')[0]}/${location.pathname.split('/')[1]||location.hostname}` : '';
+const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+async function decryptData(env, pass){
+  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey']);
+  const key = await crypto.subtle.deriveKey({name:'PBKDF2', salt:b64(env.salt), iterations:env.iter, hash:'SHA-256'}, base, {name:'AES-GCM', length:256}, false, ['decrypt']);
+  const gz = await crypto.subtle.decrypt({name:'AES-GCM', iv:b64(env.iv)}, key, b64(env.ct));
+  return JSON.parse(await new Response(new Blob([gz]).stream().pipeThrough(new DecompressionStream('gzip'))).text());
+}
+let ENV = null;
+async function loadEnv(){
+  if (ENV) return ENV;
+  const r = await fetch('data.enc.json?t=' + Date.now(), {cache:'no-store'});
+  if (!r.ok) throw new Error('nodata');
+  return ENV = await r.json();
+}
+const store = { get(){ try{return localStorage.getItem('gd-pass');}catch(e){return null;} }, set(v){ try{localStorage.setItem('gd-pass',v);}catch(e){} }, del(){ try{localStorage.removeItem('gd-pass');}catch(e){} } };
+function lockNow(){ store.del(); location.reload(); }
+async function unlock(pass, remember){
+  const err = $('#lockErr'), btn = $('#unlockBtn');
+  err.textContent=''; btn.disabled=true; btn.textContent='Unlocking…';
+  try {
+    const env = await loadEnv();
+    try { G = await decryptData(env, pass); }
+    catch(e){ store.del(); throw new Error('Wrong passphrase.'); }
+    if (remember) store.set(pass);
+    startApp();
+  } catch(e) {
+    err.textContent = e.message==='nodata' ? 'No data yet. The first sync hasn’t finished — check the Actions tab in your GitHub repo.' : e.message;
+    btn.disabled=false; btn.textContent='Unlock';
+  }
+}
+$('#lockForm').onsubmit = e => { e.preventDefault(); unlock($('#pass').value, $('#remember').checked); };
+if (!window.crypto || !crypto.subtle || !window.DecompressionStream) $('#lockErr').textContent='This browser is too old to open encrypted data. Please update it.';
+else { const saved = store.get(); if (saved) unlock(saved, true); }
+</script>
+</body>
+</html>
